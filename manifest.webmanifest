@@ -1,0 +1,15 @@
+{
+  "name": "勇闯四关",
+  "short_name": "勇闯四关",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#E9F6FB",
+  "theme_color": "#1FA2D6",
+  "lang": "zh-CN",
+  "icons": [
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "apple-touch-icon.png", "sizes": "180x180", "type": "image/png", "purpose": "any" }
+  ]
+}
