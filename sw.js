@@ -1,6 +1,6 @@
-const CACHE = 'ycsg-v2';
+const CACHE = 'ycsg-v3';
 const ASSETS = ['./', './index.html', './style.css', './app.js', './data.js',
-  './manifest.webmanifest', './icon-512.png', './apple-touch-icon.png', './icon.svg'];
+  './manifest.webmanifest', './icon-512.png', './apple-touch-icon.png', './icon.svg', './comic.jpg'];
 const NETWORK_FIRST = p => /\.(html|js|css)$/.test(p) || p.endsWith('/');
 
 self.addEventListener('install', e => {

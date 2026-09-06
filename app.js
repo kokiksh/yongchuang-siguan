@@ -25,6 +25,7 @@ function stars() {
   let n = S.entries.length + S.entries.filter(e => e.copied).length;
   for (const p of Object.values(S.poems)) n += (p.level || 0) + (p.mastered ? 2 : 0);
   for (const l of Object.values(S.lessons)) n += l.stars || 0;
+  n += (S.stories || []).length * 3 + (S.stories || []).filter(s => s.copied).length;
   n += S.practiceBest + S.bonus;
   return n;
 }
@@ -164,9 +165,9 @@ V.home = () => {
       <div class="bar coral"><i style="width:${pct(d)}%"></i></div><div class="stat">练过 ${d.done} / ${d.total} 课</div>
     </button>
     <button class="gate" onclick="location.hash='write'">
-      <span class="done">已完成</span>
+      ${(S.stories || []).length ? '<span class="done">通关!</span>' : ''}
       <div class="ico">🐵</div><div class="name">第四关 妙笔生花</div><div class="py">miào bǐ shēng huā · 小猴子学飞</div>
-      <div class="bar purple"><i style="width:100%"></i></div><div class="stat">作文已经交给老师了 👍</div>
+      <div class="bar purple"><i style="width:${Math.min(100, (S.stories || []).length * 50)}%"></i></div><div class="stat">${(S.stories || []).length ? `写了 ${(S.stories || []).length} 个故事 ✍️` : '再写一个更棒的故事吧！'}</div>
     </button>
   </div>
   <div class="center" style="margin-top:18px"><button class="btn ghost sm" onclick="location.hash='parent'">👨‍👩‍👧 家长看这里</button></div>`;
@@ -530,20 +531,101 @@ function setupPad(c, clearOnly) {
   c.onpointerup = c.onpointercancel = () => { drawing = false; };
 }
 
-/* ===== 第四关 ===== */
+/* ===== 第四关 妙笔生花 ===== */
+const OLD_STORY = '一天，小猴在树下玩。这时，一只老鹰飞了过来。小猴想：“要是我能飞，该多好啊！”于是，小猴爬上了树，然后跳了下来。结果摔了下来，四脚朝天。哈哈哈哈哈！';
+const STEPS = [
+  { pre: '一天，小猴在', post: '。', q: '什么时间？小猴在哪里，怎么样地做什么？', ph: '树下高高兴兴地玩', hints: ['树下', '草地上', '山坡上', '高高兴兴地', '自由自在地', '玩耍', '晒太阳', '吃香蕉', '荡秋千'] },
+  { pre: '这时，老鹰', post: '。', q: '老鹰在做什么？', ph: '在天空中自由自在地飞翔', hints: ['在天空中', '自由自在地', '飞翔', '展开翅膀', '飞了过来', '又高又快', '一只', '大大的'] },
+  { pre: '小猴想：“', post: '”', q: '小猴看到老鹰，心里会想什么？', ph: '要是我也能飞，该多好啊！', hints: ['要是我也能飞，该多好啊！', '我也想飞上蓝天！', '真羡慕啊！', '飞起来一定很好玩！', '我一定也可以！'] },
+  { pre: '于是，小猴', post: '，', q: '小猴怎么做？', ph: '爬上大树，张开双手用力一跳', hints: ['爬上大树', '张开双手', '用力一跳', '学着老鹰的样子', '扑腾扑腾', '闭上眼睛', '大喊一声'] },
+  { pre: '结果', post: '。', q: '结果怎样？', ph: '摔了下来，四脚朝天', hints: ['摔了下来', '四脚朝天', '屁股摔得好疼', '哇哇大哭', '哈哈大笑', '明白了：猴子是不会飞的', '下次再也不学飞了'] },
+];
+function joinPart(step, t) {
+  t = (t || '').trim().replace(/[。！？，、”]+$/, m => (step.post === '”' ? m.replace(/”/g, '') : ''));
+  if (step.post === '”' && !/[。！？]$/.test(t)) t += '！';
+  return step.pre + t + step.post;
+}
+function assemble(parts) { return STEPS.map((s, i) => joinPart(s, parts[i])).join(''); }
+function gridPaper(text) {
+  return `<div class="paper">${[...text].map(c => `<span class="cell">${esc(c)}</span>`).join('')}</div>`;
+}
+
 V.write = () => {
   crumb('第四关 妙笔生花');
+  const stories = S.stories || [];
   app.innerHTML = `
-    <div class="card center"><div style="font-size:80px">🐵</div><div class="stamp">已完成</div>
-      <h1>小猴子学飞</h1>
-      <div class="sub">这一关你已经写好，老师也看过了（9月3日）。</div>
-      <div class="card" style="text-align:left;margin-top:16px;font-size:22px;line-height:1.8">
-        一天，小猴在树下玩。这时，一只老鹰飞了过来。小猴想：“要是我能飞，该多好啊！”于是，小猴爬上了树，然后跳了下来。结果摔了下来，四脚朝天。哈哈哈哈哈！
+    <div class="card">
+      <div class="row spread"><h1 style="margin:0">🐵 小猴子学飞</h1><div class="sub">写了 ${stories.length} 个故事</div></div>
+      <img class="comic" src="./comic.jpg" alt="小猴子学飞 三幅图">
+      <div class="sub">仔细看图，想一想：什么时间，谁在哪里怎么样地做什么？小猴子看到老鹰会想什么？怎么做？结果怎样？</div>
+      <div class="row" style="margin-top:14px">
+        <button class="btn big leaf" onclick="location.hash='write/new'">✍️ 写一个新故事</button>
+        <button class="btn ghost" id="old">📄 看看以前写的</button>
       </div>
-      <div class="sub">上面是把你的故事用汉字写出来的样子。点 🔊 听一听，试着认认这些字。</div>
-      <div class="row" style="justify-content:center;margin-top:12px"><button class="btn" id="say">🔊 读一读</button><button class="btn ghost" onclick="location.hash='home'">返回</button></div>
-    </div>`;
-  $('#say').onclick = () => TTS.speak('一天，小猴在树下玩。这时，一只老鹰飞了过来。小猴想：要是我能飞，该多好啊！于是，小猴爬上了树，然后跳了下来。结果摔了下来，四脚朝天。哈哈哈哈哈！', 0.85);
+      <div id="oldbox" style="display:none;margin-top:12px"><div class="sub">这是你 9 月交给老师的那个故事：</div>${gridPaper(OLD_STORY)}<button class="btn sm ghost" style="margin-top:8px" id="sayold">🔊 读一读</button></div>
+    </div>
+    ${stories.slice().reverse().map(st => `
+      <div class="card">
+        <div class="row spread"><b>📖 故事 ${stories.indexOf(st) + 1}</b><span class="small">${new Date(st.ts).toLocaleDateString('zh-CN')}</span></div>
+        ${gridPaper(st.text)}
+        <div class="row" style="margin-top:10px">
+          <button class="btn sm ghost" data-say="${esc(st.text)}">🔊 读一读</button>
+          <button class="btn sm ${st.copied ? 'leaf' : 'sun'}" data-copy="${st.id}">${st.copied ? '✅ 抄到纸上了' : '📝 我抄到纸上了'}</button>
+          <button class="btn sm ghost" data-del="${st.id}">🗑</button>
+        </div>
+      </div>`).join('')}
+    <button class="btn ghost" onclick="location.hash='home'">← 返回</button>`;
+  $('#old').onclick = () => { const b = $('#oldbox'); b.style.display = b.style.display === 'none' ? 'block' : 'none'; };
+  $('#sayold').onclick = () => TTS.speak(OLD_STORY, 0.85);
+  app.querySelectorAll('[data-say]').forEach(b => b.onclick = () => TTS.speak(b.dataset.say, 0.85));
+  app.querySelectorAll('[data-copy]').forEach(b => b.onclick = () => { const st = stories.find(x => x.id === b.dataset.copy); if (st && !st.copied) { st.copied = true; save(); sfx.win(); confetti(120); } V.write(); });
+  app.querySelectorAll('[data-del]').forEach(b => b.onclick = () => { if (confirm('删掉这个故事吗？')) { S.stories = stories.filter(x => x.id !== b.dataset.del); save(); V.write(); } });
+};
+
+V['write/new'] = () => {
+  crumb('写故事');
+  const parts = ['', '', '', '', ''];
+  let step = 0;
+  function render() {
+    const s = STEPS[step];
+    app.innerHTML = `
+      <div class="card">
+        <div class="row spread"><div class="sub">第 ${step + 1} / ${STEPS.length} 步</div>
+          <div class="progress-dots">${STEPS.map((_, k) => `<i class="${k < step ? 'ok' : k === step ? 'cur' : ''}"></i>`).join('')}</div></div>
+        <img class="comic" src="./comic.jpg" alt="">
+        <h2>${esc(s.q)}</h2>
+        <div class="story-line"><span class="fixed">${esc(s.pre)}</span><textarea class="sentence inline" id="part" placeholder="${esc(s.ph)}">${esc(parts[step])}</textarea><span class="fixed">${esc(s.post)}</span></div>
+        <div class="sub">可以自己打字，也可以点下面的词加进去。</div>
+        <div class="chips" id="hints">${s.hints.map(h => `<button class="chip" data-h="${esc(h)}">${esc(h)}</button>`).join('')}</div>
+        <div class="row" style="margin-top:12px"><button class="btn sm ghost" id="say">🔊 读一读这句</button><button class="btn sm ghost" id="clear">🧹 清空</button></div>
+      </div>
+      <div class="card"><div class="sub">目前的故事：</div><div class="story-preview" id="prev"></div></div>
+      <div class="row spread">
+        <button class="btn ghost" id="back">${step === 0 ? '← 返回' : '← 上一步'}</button>
+        <button class="btn big ${step === STEPS.length - 1 ? 'leaf' : ''}" id="next">${step === STEPS.length - 1 ? '🎉 故事写好了！' : '下一步 →'}</button>
+      </div>`;
+    const ta = $('#part');
+    const upd = () => { parts[step] = ta.value; $('#prev').textContent = STEPS.slice(0, step + 1).map((st, i) => (parts[i] || i === step) ? joinPart(st, parts[i]) : '').join(''); $('#next').disabled = !ta.value.trim(); };
+    ta.oninput = upd; upd();
+    $('#hints').querySelectorAll('.chip').forEach(c => c.onclick = () => { sfx.tap(); ta.value = (ta.value.trim() + c.dataset.h); upd(); });
+    $('#say').onclick = () => TTS.speak(joinPart(s, ta.value), 0.85);
+    $('#clear').onclick = () => { ta.value = ''; upd(); };
+    $('#back').onclick = () => { if (step === 0) go('write'); else { step--; render(); } };
+    $('#next').onclick = () => {
+      if (!ta.value.trim()) return;
+      if (step < STEPS.length - 1) { step++; render(); }
+      else {
+        const text = assemble(parts);
+        S.stories = S.stories || []; S.stories.push({ id: Date.now().toString(36), parts: parts.slice(), text, copied: false, ts: Date.now() });
+        save(); sfx.win(); confetti(200);
+        app.innerHTML = `<div class="card result"><div class="big">🐵🎉</div><h2>你的故事写好了！</h2>${gridPaper(text)}
+          <div class="sub" style="margin-top:8px">用铅笔抄到作文格子里，每个格子写一个字。</div>
+          <div class="row" style="justify-content:center;margin-top:14px"><button class="btn" id="say2">🔊 读一读</button><button class="btn sun" onclick="location.hash='write'">看我的故事</button></div></div>`;
+        $('#say2').onclick = () => TTS.speak(text, 0.85);
+      }
+    };
+  }
+  render();
 };
 
 /* ===== 家长 ===== */
@@ -582,6 +664,7 @@ function route() {
   if (v === 'read' && a === 'card') V['read/card'](b);
   else if (v === 'read' && a) (V['read/' + a] || V.read)();
   else if (v === 'poem') V.poem(a, b);
+  else if (v === 'write' && a === 'new') V['write/new']();
   else if (v === 'dict' && a) V.dictRun(a);
   else (V[v] || V.home)();
   window.scrollTo(0, 0);
